@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-import { generateResponse } from '@/lib/gemini';
+import { useState } from 'react';
 
 interface Message {
   id: string;
@@ -15,30 +13,6 @@ export default function Coach() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [userContext, setUserContext] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchUserContext = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('chronotype, sleep_goals, challenges')
-            .eq('id', user.id)
-            .single();
-          
-          if (profile) {
-            setUserContext(profile);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching user context:', error);
-      }
-    };
-
-    fetchUserContext();
-  }, []);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,16 +30,13 @@ export default function Coach() {
     setIsLoading(true);
 
     try {
-      // Get chat history
-      const chatHistory = [...messages, userMessage];
-      
-      // Call Gemini directly
-      const response = await generateResponse(chatHistory, userContext);
+      // Simulate AI response for now
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response,
+        content: "I'm Luna, your sleep coach! 🌙 I'm here to help you get better sleep. For now, I'm in demo mode, but I'll be fully functional soon with personalized sleep advice based on your chronotype and sleep patterns. What would you like to know about sleep?",
         timestamp: new Date().toISOString()
       };
 
