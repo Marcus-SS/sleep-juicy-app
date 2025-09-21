@@ -1,12 +1,23 @@
 import { useState, useEffect } from 'react'
 import { NextPage } from 'next'
 import Link from 'next/link'
+import { supabase } from '../../lib/supabaseClient'
+
+interface SleepLog {
+  id: string
+  date: string
+  bedtime: string
+  wake_time: string
+  sleep_quality: number
+  created_at: string
+}
 
 const Dashboard: NextPage = () => {
   const [currentStreak, setCurrentStreak] = useState(0)
   const [bestStreak, setBestStreak] = useState(0)
   const [sleepLogsCount, setSleepLogsCount] = useState(0)
   const [chronotype, setChronotype] = useState('')
+  const [sleepLogs, setSleepLogs] = useState<SleepLog[]>([])
 
   // Function to get dynamic greeting
   const getGreeting = () => {
@@ -14,6 +25,53 @@ const Dashboard: NextPage = () => {
     if (hour < 12) return 'Good Morning! ☀️'
     if (hour < 18) return 'Good Afternoon! ☀️'
     return 'Good Evening! 🌙'
+  }
+
+  // Function to calculate streaks
+  const calculateStreaks = (logs: SleepLog[]) => {
+    if (logs.length === 0) {
+      setCurrentStreak(0)
+      setBestStreak(0)
+      return
+    }
+
+    // Sort logs by date (newest first)
+    const sortedLogs = [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    
+    let currentStreakCount = 0
+    let bestStreakCount = 0
+    let tempStreak = 0
+    
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    // Check current streak
+    for (let i = 0; i < sortedLogs.length; i++) {
+      const logDate = new Date(sortedLogs[i].date)
+      logDate.setHours(0, 0, 0, 0)
+      
+      const expectedDate = new Date(today)
+      expectedDate.setDate(today.getDate() - i)
+      
+      if (logDate.getTime() === expectedDate.getTime()) {
+        currentStreakCount++
+      } else {
+        break
+      }
+    }
+    
+    // Calculate best streak
+    for (let i = 0; i < sortedLogs.length; i++) {
+      if (i === 0 || new Date(sortedLogs[i].date).getTime() === new Date(sortedLogs[i-1].date).getTime() + 24*60*60*1000) {
+        tempStreak++
+        bestStreakCount = Math.max(bestStreakCount, tempStreak)
+      } else {
+        tempStreak = 1
+      }
+    }
+    
+    setCurrentStreak(currentStreakCount)
+    setBestStreak(bestStreakCount)
   }
 
   // Function to get chronotype recommendations
@@ -58,6 +116,42 @@ const Dashboard: NextPage = () => {
       description: 'Take the chronotype test to get personalized recommendations'
     }
   }
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch sleep logs
+        const { data: sleepLogsData, error: sleepLogsError } = await supabase
+          .from('sleep_logs')
+          .select('*')
+          .order('date', { ascending: false })
+
+        if (sleepLogsError) {
+          console.error('Error fetching sleep logs:', sleepLogsError)
+        } else {
+          setSleepLogs(sleepLogsData || [])
+          setSleepLogsCount(sleepLogsData?.length || 0)
+          calculateStreaks(sleepLogsData || [])
+        }
+
+        // Fetch user profile for chronotype
+        const { data: profileData, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('chronotype')
+          .single()
+
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError)
+        } else {
+          setChronotype(profileData?.chronotype || '')
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   const chronotypeInfo = getChronotypeInfo(chronotype)
 

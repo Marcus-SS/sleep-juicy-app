@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NextPage } from 'next'
+import { generateChatResponse } from '../../lib/gemini'
 
 const Coach: NextPage = () => {
   const [messages, setMessages] = useState([
@@ -25,16 +26,28 @@ const Coach: NextPage = () => {
     setInputMessage('')
     setIsLoading(true)
 
-    // Simulate AI response for demo
-    setTimeout(() => {
-      const aiResponse = {
+    try {
+      // Get AI response using the real Gemini API
+      const aiResponse = await generateChatResponse(inputMessage, messages)
+      
+      const aiMessage = {
         id: Date.now() + 1,
-        text: "That's a great question! For better sleep, I recommend establishing a consistent bedtime routine, avoiding screens 1 hour before bed, and keeping your bedroom cool and dark. Would you like me to help you create a personalized sleep schedule?",
+        text: aiResponse,
         sender: 'ai'
       }
-      setMessages(prev => [...prev, aiResponse])
+      
+      setMessages(prev => [...prev, aiMessage])
+    } catch (error) {
+      console.error('Error getting AI response:', error)
+      const errorMessage = {
+        id: Date.now() + 1,
+        text: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment! 😊",
+        sender: 'ai'
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
