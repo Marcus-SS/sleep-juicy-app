@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { generateResponse } from '@/lib/gemini';
 
 interface Message {
   id: string;
@@ -58,28 +59,13 @@ export default function Coach() {
       // Get chat history
       const chatHistory = [...messages, userMessage];
       
-      // Call the API route
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: chatHistory,
-          userContext
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      const data = await response.json();
+      // Call Gemini directly
+      const response = await generateResponse(chatHistory, userContext);
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.response,
+        content: response,
         timestamp: new Date().toISOString()
       };
 
