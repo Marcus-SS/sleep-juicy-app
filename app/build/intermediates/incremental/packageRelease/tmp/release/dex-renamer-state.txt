@@ -1,0 +1,4 @@
+#Fri Sep 19 21:52:04 WITA 2025
+base.0=/Users/mariablanchard/Sleep Coachin version 2/app/build/intermediates/dex/release/minifyReleaseWithR8/classes.dex
+renamed.0=classes.dex
+path.0=classes.dex
